@@ -1,0 +1,80 @@
+[package]
+name = "graphite-wasm"
+publish = false
+version = "0.0.0"
+rust-version = "1.79"
+authors = ["Graphite Authors <contact@graphite.rs>"]
+edition = "2021"
+readme = "../../README.md"
+homepage = "https://graphite.rs"
+repository = "https://github.com/GraphiteEditor/Graphite"
+license = "Apache-2.0"
+
+[features]
+default = ["gpu"]
+gpu = ["editor/gpu"]
+tauri = ["ron"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Local dependencies
+editor = { path = "../../editor", package = "graphite-editor", features = [
+	"gpu",
+	"resvg",
+	"vello",
+] }
+
+# Workspace dependencies
+graph-craft = { workspace = true }
+log = { workspace = true }
+graphene-core = { workspace = true, features = ["std", "alloc"] }
+serde = { workspace = true, features = ["derive"] }
+wasm-bindgen = { workspace = true }
+serde-wasm-bindgen = { workspace = true }
+js-sys = { workspace = true }
+wasm-bindgen-futures = { workspace = true }
+bezier-rs = { workspace = true }
+glam = { workspace = true }
+meval = { workspace = true }
+wgpu = { workspace = true, features = [
+	"fragile-send-sync-non-atomic-wasm",
+] } # We don't have wgpu on multiple threads (yet) https://github.com/gfx-rs/wgpu/blob/trunk/CHANGELOG.md#wgpu-types-now-send-sync-on-wasm
+web-sys = { workspace = true, features = [
+	"Window",
+	"CanvasRenderingContext2d",
+	"Document",
+	"HtmlCanvasElement",
+	"IdleRequestOptions",
+] }
+
+# Optional workspace dependencies
+ron = { workspace = true, optional = true }
+
+[profile.release]
+debug = true
+
+[package.metadata.wasm-pack.profile.dev]
+wasm-opt = false
+
+[package.metadata.wasm-pack.profile.dev.wasm-bindgen]
+debug-js-glue = true
+demangle-name-section = true
+dwarf-debug-info = true
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-Os", "-g"]
+
+[package.metadata.wasm-pack.profile.release.wasm-bindgen]
+debug-js-glue = false
+demangle-name-section = false
+dwarf-debug-info = false
+
+[package.metadata.wasm-pack.profile.profiling]
+wasm-opt = ["-Os", "-g"]
+
+[package.metadata.wasm-pack.profile.profiling.wasm-bindgen]
+debug-js-glue = true
+demangle-name-section = true
+dwarf-debug-info = true

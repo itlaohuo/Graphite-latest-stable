@@ -1,0 +1,118 @@
+use super::simple_dialogs::{self, AboutGraphiteDialog, ComingSoonDialog, DemoArtworkDialog, LicensesDialog};
+use crate::messages::layout::utility_types::widget_prelude::*;
+use crate::messages::prelude::*;
+
+pub struct DialogMessageData<'a> {
+	pub portfolio: &'a PortfolioMessageHandler,
+	pub preferences: &'a PreferencesMessageHandler,
+}
+
+/// Stores the dialogs which require state. These are the ones that have their own message handlers, and are not the ones defined in `simple_dialogs`.
+#[derive(Debug, Default, Clone)]
+pub struct DialogMessageHandler {
+	export_dialog: ExportDialogMessageHandler,
+	new_document_dialog: NewDocumentDialogMessageHandler,
+	preferences_dialog: PreferencesDialogMessageHandler,
+}
+
+impl MessageHandler<DialogMessage, DialogMessageData<'_>> for DialogMessageHandler {
+	fn process_message(&mut self, message: DialogMessage, responses: &mut VecDeque<Message>, data: DialogMessageData) {
+		let DialogMessageData { portfolio, preferences } = data;
+
+		match message {
+			DialogMessage::ExportDialog(message) => self.export_dialog.process_message(message, responses, ExportDialogMessageData { portfolio }),
+			DialogMessage::NewDocumentDialog(message) => self.new_document_dialog.process_message(message, responses, ()),
+			DialogMessage::PreferencesDialog(message) => self.preferences_dialog.process_message(message, responses, PreferencesDialogMessageData { preferences }),
+
+			DialogMessage::CloseAllDocumentsWithConfirmation => {
+				let dialog = simple_dialogs::CloseAllDocumentsDialog {
+					unsaved_document_names: portfolio.unsaved_document_names(),
+				};
+				dialog.send_dialog_to_frontend(responses);
+			}
+			DialogMessage::CloseDialogAndThen { followups } => {
+				for message in followups.into_iter() {
+					responses.add(message);
+				}
+
+				// This come after followups, so that the followups (which can cause the dialog to open) happen first, then we close it afterwards.
+				// If it comes before, the dialog reopens (and appears to not close at all).
+				responses.add(FrontendMessage::DisplayDialogDismiss);
+			}
+			DialogMessage::DisplayDialogError { title, description } => {
+				let dialog = simple_dialogs::ErrorDialog { title, description };
+				dialog.send_dialog_to_frontend(responses);
+			}
+			DialogMessage::RequestAboutGraphiteDialog => {
+				responses.add(FrontendMessage::TriggerAboutGraphiteLocalizedCommitDate {
+					commit_date: env!("GRAPHITE_GIT_COMMIT_DATE").into(),
+				});
+			}
+			DialogMessage::RequestAboutGraphiteDialogWithLocalizedCommitDate {
+				localized_commit_date,
+				localized_commit_year,
+			} => {
+				let dialog = AboutGraphiteDialog {
+					localized_commit_date,
+					localized_commit_year,
+				};
+
+				dialog.send_dialog_to_frontend(responses);
+			}
+			DialogMessage::RequestComingSoonDialog { issue } => {
+				let dialog = ComingSoonDialog { issue };
+				dialog.send_dialog_to_frontend(responses);
+			}
+			DialogMessage::RequestDemoArtworkDialog => {
+				let dialog = DemoArtworkDialog;
+				dialog.send_dialog_to_frontend(responses);
+			}
+			DialogMessage::RequestExportDialog => {
+				if let Some(document) = portfolio.active_document() {
+					let artboards = document
+						.metadata
+						.all_layers()
+						.filter(|&layer| document.metadata.is_artboard(layer))
+						.map(|layer| {
+							let name = document
+								.network
+								.nodes
+								.get(&layer.to_node())
+								.and_then(|node| if node.alias.is_empty() { None } else { Some(node.alias.clone()) })
+								.unwrap_or_else(|| "Artboard".to_string());
+							(layer, name)
+						})
+						.collect();
+
+					self.export_dialog.artboards = artboards;
+					self.export_dialog.has_selection = document.selected_nodes.selected_layers(document.metadata()).next().is_some();
+					self.export_dialog.send_dialog_to_frontend(responses);
+				}
+			}
+			DialogMessage::RequestLicensesDialogWithLocalizedCommitDate { localized_commit_year } => {
+				let dialog = LicensesDialog { localized_commit_year };
+
+				dialog.send_dialog_to_frontend(responses);
+			}
+			DialogMessage::RequestNewDocumentDialog => {
+				self.new_document_dialog = NewDocumentDialogMessageHandler {
+					name: portfolio.generate_new_document_name(),
+					infinite: false,
+					dimensions: glam::UVec2::new(1920, 1080),
+				};
+				self.new_document_dialog.send_dialog_to_frontend(responses);
+			}
+			DialogMessage::RequestPreferencesDialog => {
+				self.preferences_dialog = PreferencesDialogMessageHandler {};
+				self.preferences_dialog.send_dialog_to_frontend(responses, preferences);
+			}
+		}
+	}
+
+	advertise_actions!(DialogMessageDiscriminant;
+		CloseAllDocumentsWithConfirmation,
+		RequestExportDialog,
+		RequestNewDocumentDialog,
+		RequestPreferencesDialog,
+	);
+}

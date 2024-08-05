@@ -1,0 +1,31 @@
+[package]
+name = "interpreted-executor"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[features]
+default = []
+serde = ["dep:serde", "graphene-std/serde", "glam/serde"]
+gpu = ["graphene-std/gpu", "graphene-core/gpu", "graphene-std/wgpu"]
+quantization = ["graphene-std/quantization"]
+
+[dependencies]
+# Local dependencies
+graphene-std = { path = "../gstd", features = ["serde"] }
+graph-craft = { path = "../graph-craft" }
+gpu-executor = { path = "../gpu-executor" }
+wgpu-executor = { path = "../wgpu-executor" }
+
+# Workspace dependencies
+graphene-core = { workspace = true, features = ["std"] }
+dyn-any = { workspace = true, features = ["log-bad-types", "glam"] }
+num-traits = { workspace = true }
+log = { workspace = true }
+wgpu = { workspace = true }
+glam = { workspace = true }
+futures = { workspace = true }
+once_cell = { workspace = true }
+
+# Optional workspace dependencies
+serde = { workspace = true, optional = true }
