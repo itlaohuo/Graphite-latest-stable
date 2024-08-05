@@ -2,8 +2,13 @@ name: "Editor: Production (Latest Stable)"
 
 on:
   push:
-    tags:
-      - "latest-stable"
+    branches:
+      - shu
+      - master
+  pull_request:
+    branches:
+      - shu
+      - master
 
 env:
   CARGO_TERM_COLOR: always
