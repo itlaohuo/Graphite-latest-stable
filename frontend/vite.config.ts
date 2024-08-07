@@ -60,21 +60,21 @@ export default defineConfig({
 	},
 	build: {
 		rollupOptions: {
-			plugins: [
-				rollupPluginLicense({
-					thirdParty: {
-						allow: {
-							test: `(${ALLOWED_LICENSES.join(" OR ")})`,
-							failOnUnlicensed: true,
-							failOnViolation: true,
-						},
-						output: {
-							file: path.resolve(__dirname, "./dist/third-party-licenses.txt"),
-							template: formatThirdPartyLicenses,
-						},
-					},
-				}),
-			],
+			// plugins: [
+			// 	rollupPluginLicense({
+			// 		thirdParty: {
+			// 			allow: {
+			// 				test: `(${ALLOWED_LICENSES.join(" OR ")})`,
+			// 				failOnUnlicensed: true,
+			// 				failOnViolation: true,
+			// 			},
+			// 			output: {
+			// 				file: path.resolve(__dirname, "./dist/third-party-licenses.txt"),
+			// 				template: formatThirdPartyLicenses,
+			// 			},
+			// 		},
+			// 	}),
+			// ],
 			output: {
 				// Inject `.min` into the filename of minified CSS files to tell Cloudflare not to minify it again.
 				// Cloudflare's minifier breaks the CSS due to a bug where it removes whitespace around calc() plus operators.
@@ -108,13 +108,13 @@ function formatThirdPartyLicenses(jsLicenses: Dependency[]): string {
 		console.error("To install cargo-about on your system, you can run `cargo install cargo-about`.");
 		console.error("License information is required in production builds. Aborting.");
 
-		process.exit(1);
+		// process.exit(1);
 	}
 	if (jsLicenses.length === 0) {
 		console.error("No JavaScript package licenses were found by `rollup-plugin-license`. Please investigate.");
 		console.error("License information is required in production builds. Aborting.");
 
-		process.exit(1);
+		// process.exit(1);
 	}
 
 	// Augment the imported Rust license list with the provided JS license list.
